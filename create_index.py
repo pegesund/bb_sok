@@ -13,6 +13,55 @@ INDEX_NAME = "books"
 INDEX_SETTINGS = {
     "settings": {
         "analysis": {
+            "char_filter": {
+                "nordic_normalize": {
+                    "type": "mapping",
+                    "mappings": [
+                        # Swedish/German → Norwegian (preserve Nordic letters)
+                        "ö => ø",
+                        "Ö => Ø",
+                        "ä => æ",
+                        "Ä => Æ",
+                        # German ü → Norwegian y
+                        "ü => y",
+                        "Ü => Y",
+                        # French/Spanish accents on e
+                        "é => e", "É => E",
+                        "è => e", "È => E",
+                        "ê => e", "Ê => E",
+                        "ë => e", "Ë => E",
+                        # Accents on a (but NOT æ)
+                        "á => a", "Á => A",
+                        "à => a", "À => A",
+                        "â => a", "Â => A",
+                        "ã => a", "Ã => A",
+                        # Accents on i
+                        "í => i", "Í => I",
+                        "ì => i", "Ì => I",
+                        "î => i", "Î => I",
+                        "ï => i", "Ï => I",
+                        # Accents on o (but NOT ø)
+                        "ó => o", "Ó => O",
+                        "ò => o", "Ò => O",
+                        "ô => o", "Ô => O",
+                        "õ => o", "Õ => O",
+                        # Accents on u
+                        "ú => u", "Ú => U",
+                        "ù => u", "Ù => U",
+                        "û => u", "Û => U",
+                        # Other
+                        "ñ => n", "Ñ => N",
+                        "ç => c", "Ç => C",
+                        "ÿ => y", "Ÿ => Y",
+                        "ß => ss",
+                    ]
+                },
+                "remove_special": {
+                    "type": "pattern_replace",
+                    "pattern": "[^\\p{L}\\p{N}\\s]",  # Remove non-letter, non-digit, non-space
+                    "replacement": ""
+                }
+            },
             "tokenizer": {
                 "ngram_tokenizer": {
                     "type": "ngram",
@@ -26,21 +75,34 @@ INDEX_SETTINGS = {
                     "type": "edge_ngram",
                     "min_gram": 1,
                     "max_gram": 20
+                },
+                "ascii_fold": {
+                    "type": "asciifolding",
+                    "preserve_original": False
                 }
             },
             "analyzer": {
                 "ngram_analyzer": {
                     "type": "custom",
+                    "char_filter": ["nordic_normalize", "remove_special"],
                     "tokenizer": "ngram_tokenizer",
                     "filter": ["lowercase"]
                 },
                 "edge_ngram_analyzer": {
                     "type": "custom",
+                    "char_filter": ["nordic_normalize", "remove_special"],
                     "tokenizer": "standard",
                     "filter": ["lowercase", "edge_ngram_filter"]
                 },
                 "search_analyzer": {
                     "type": "custom",
+                    "char_filter": ["nordic_normalize", "remove_special"],
+                    "tokenizer": "standard",
+                    "filter": ["lowercase"]
+                },
+                "standard_normalized": {
+                    "type": "custom",
+                    "char_filter": ["nordic_normalize", "remove_special"],
                     "tokenizer": "standard",
                     "filter": ["lowercase"]
                 }
@@ -53,6 +115,7 @@ INDEX_SETTINGS = {
             "ean": {"type": "keyword"},
             "titles": {
                 "type": "text",
+                "analyzer": "standard_normalized",
                 "copy_to": "combined",
                 "fields": {
                     "ngram": {
@@ -64,6 +127,7 @@ INDEX_SETTINGS = {
             },
             "authors": {
                 "type": "text",
+                "analyzer": "standard_normalized",
                 "copy_to": "combined",
                 "fields": {
                     "ngram": {
@@ -75,7 +139,7 @@ INDEX_SETTINGS = {
             },
             "combined": {
                 "type": "text",
-                "analyzer": "standard",
+                "analyzer": "standard_normalized",
                 "fields": {
                     "ngram": {
                         "type": "text",

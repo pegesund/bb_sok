@@ -39,6 +39,31 @@ TEST_CASES = [
     ("houllebeck serotonin", "houellebecq"),
     ("houellebecq underkastelse", "houellebecq"),
     ("houllebecq underkastelse", "houellebecq"),
+
+    # Diacritical variants - ë (diaeresis)
+    ("Bronte", "brontë"),           # Without diacritic
+    ("Brontë", "brontë"),           # With diacritic
+    ("Charlotte Bronte", "brontë"), # Full name without diacritic
+
+    # Diacritical variants - ö (Swedish/German)
+    ("Marcel Moring", "möring"),    # Without diacritic
+    ("Marcel Möring", "möring"),    # With diacritic
+
+    # Diacritical variants - é (French accent)
+    ("Regine Deforges", "régine"),  # Without accent
+    ("Régine Deforges", "régine"),  # With accent
+
+    # Special character removal
+    ("JK Rowling", "rowling"),      # Without periods
+    ("J.K. Rowling", "rowling"),    # With periods
+    ("J K Rowling", "rowling"),     # With spaces
+
+    # Nordic character variants (ö→ø, ä→æ, but o≠ø, a≠æ)
+    ("Jäger", "jæger"),             # German ä → Norwegian æ ✓
+    ("Jæger", "jæger"),             # Norwegian æ preserved ✓
+    ("Marcel Møring", "möring"),    # Norwegian ø → finds Swedish ö ✓
+    ("Marcel Möring", "möring"),    # Swedish ö → finds Swedish ö (same after normalization)
+    # Note: "Jager" does NOT find "Jæger" - they are different letters!
 ]
 
 
