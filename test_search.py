@@ -18,6 +18,9 @@ INDEX_NAME = "books"
 
 # Test cases: (query, expected_substring_in_title_or_author)
 TEST_CASES = [
+    # EAN exact match
+    ("9788202792947", "harry potter"),  # Direct ISBN/EAN lookup
+
     # Harry Potter variants
     ("harry potter", "harry potter"),
     ("harry poter", "harry potter"),

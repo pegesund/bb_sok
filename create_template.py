@@ -17,6 +17,14 @@ SEARCH_TEMPLATE = {
                 "dis_max": {
                     "queries": [
                         {
+                            "term": {
+                                "ean": {
+                                    "value": "{{query_string}}",
+                                    "boost": 1000
+                                }
+                            }
+                        },
+                        {
                             "match": {
                                 "combined": {
                                     "query": "{{query_string}}",

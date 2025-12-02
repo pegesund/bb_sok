@@ -1,0 +1,233 @@
+{
+  "index": {
+    "name": "books",
+    "settings": {
+      "analysis": {
+        "char_filter": {
+          "nordic_normalize": {
+            "type": "mapping",
+            "mappings": [
+              "ö => ø",
+              "Ö => Ø",
+              "ä => æ",
+              "Ä => Æ",
+              "ü => y",
+              "Ü => Y",
+              "é => e", "É => E",
+              "è => e", "È => E",
+              "ê => e", "Ê => E",
+              "ë => e", "Ë => E",
+              "á => a", "Á => A",
+              "à => a", "À => A",
+              "â => a", "Â => A",
+              "ã => a", "Ã => A",
+              "í => i", "Í => I",
+              "ì => i", "Ì => I",
+              "î => i", "Î => I",
+              "ï => i", "Ï => I",
+              "ó => o", "Ó => O",
+              "ò => o", "Ò => O",
+              "ô => o", "Ô => O",
+              "õ => o", "Õ => O",
+              "ú => u", "Ú => U",
+              "ù => u", "Ù => U",
+              "û => u", "Û => U",
+              "ñ => n", "Ñ => N",
+              "ç => c", "Ç => C",
+              "ÿ => y", "Ÿ => Y",
+              "ß => ss"
+            ]
+          },
+          "remove_special": {
+            "type": "pattern_replace",
+            "pattern": "[^\\p{L}\\p{N}\\s]",
+            "replacement": ""
+          }
+        },
+        "tokenizer": {
+          "ngram_tokenizer": {
+            "type": "ngram",
+            "min_gram": 2,
+            "max_gram": 3,
+            "token_chars": ["letter", "digit"]
+          }
+        },
+        "filter": {
+          "edge_ngram_filter": {
+            "type": "edge_ngram",
+            "min_gram": 1,
+            "max_gram": 20
+          },
+          "ascii_fold": {
+            "type": "asciifolding",
+            "preserve_original": false
+          }
+        },
+        "analyzer": {
+          "ngram_analyzer": {
+            "type": "custom",
+            "char_filter": ["nordic_normalize", "remove_special"],
+            "tokenizer": "ngram_tokenizer",
+            "filter": ["lowercase"]
+          },
+          "edge_ngram_analyzer": {
+            "type": "custom",
+            "char_filter": ["nordic_normalize", "remove_special"],
+            "tokenizer": "standard",
+            "filter": ["lowercase", "edge_ngram_filter"]
+          },
+          "search_analyzer": {
+            "type": "custom",
+            "char_filter": ["nordic_normalize", "remove_special"],
+            "tokenizer": "standard",
+            "filter": ["lowercase"]
+          },
+          "standard_normalized": {
+            "type": "custom",
+            "char_filter": ["nordic_normalize", "remove_special"],
+            "tokenizer": "standard",
+            "filter": ["lowercase"]
+          }
+        }
+      },
+      "index.max_ngram_diff": 1
+    },
+    "mappings": {
+      "properties": {
+        "ean": { "type": "keyword" },
+        "titles": {
+          "type": "text",
+          "analyzer": "standard_normalized",
+          "copy_to": "combined",
+          "fields": {
+            "ngram": {
+              "type": "text",
+              "analyzer": "ngram_analyzer",
+              "search_analyzer": "ngram_analyzer"
+            }
+          }
+        },
+        "authors": {
+          "type": "text",
+          "analyzer": "standard_normalized",
+          "copy_to": "combined",
+          "fields": {
+            "ngram": {
+              "type": "text",
+              "analyzer": "ngram_analyzer",
+              "search_analyzer": "ngram_analyzer"
+            }
+          }
+        },
+        "combined": {
+          "type": "text",
+          "analyzer": "standard_normalized",
+          "fields": {
+            "ngram": {
+              "type": "text",
+              "analyzer": "ngram_analyzer",
+              "search_analyzer": "ngram_analyzer"
+            },
+            "edge": {
+              "type": "text",
+              "analyzer": "edge_ngram_analyzer",
+              "search_analyzer": "search_analyzer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "search_template": {
+    "id": "book_search",
+    "script": {
+      "lang": "mustache",
+      "source": {
+        "query": {
+          "dis_max": {
+            "queries": [
+              {
+                "term": {
+                  "ean": {
+                    "value": "{{query_string}}",
+                    "boost": 1000
+                  }
+                }
+              },
+              {
+                "match": {
+                  "combined": {
+                    "query": "{{query_string}}",
+                    "operator": "and",
+                    "boost": 50
+                  }
+                }
+              },
+              {
+                "match": {
+                  "titles.ngram": {
+                    "query": "{{query_string}}",
+                    "minimum_should_match": "60%",
+                    "auto_generate_synonyms_phrase_query": false,
+                    "boost": 30
+                  }
+                }
+              },
+              {
+                "match": {
+                  "authors.ngram": {
+                    "query": "{{query_string}}",
+                    "minimum_should_match": "60%",
+                    "auto_generate_synonyms_phrase_query": false,
+                    "boost": 20
+                  }
+                }
+              },
+              {
+                "match": {
+                  "combined.edge": {
+                    "query": "{{query_string}}",
+                    "operator": "and",
+                    "boost": 15
+                  }
+                }
+              },
+              {
+                "match": {
+                  "combined.ngram": {
+                    "query": "{{query_string}}",
+                    "minimum_should_match": "40%",
+                    "auto_generate_synonyms_phrase_query": false,
+                    "boost": 8
+                  }
+                }
+              },
+              {
+                "match": {
+                  "combined": {
+                    "query": "{{query_string}}",
+                    "fuzziness": "AUTO",
+                    "operator": "and",
+                    "boost": 100
+                  }
+                }
+              },
+              {
+                "multi_match": {
+                  "query": "{{query_string}}",
+                  "fields": ["titles^3", "authors^2"],
+                  "fuzziness": "AUTO",
+                  "type": "best_fields",
+                  "operator": "and",
+                  "boost": 100
+                }
+              }
+            ],
+            "tie_breaker": 0.2
+          }
+        },
+        "size": "{{size}}{{^size}}10{{/size}}"
+      }
+    }
+  }
+}
