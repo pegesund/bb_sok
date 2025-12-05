@@ -14,86 +14,124 @@ SEARCH_TEMPLATE = {
         "lang": "mustache",
         "source": {
             "query": {
-                "dis_max": {
-                    "queries": [
-                        {
-                            "term": {
-                                "ean": {
-                                    "value": "{{query_string}}",
-                                    "boost": 1000
+                "function_score": {
+                    "query": {
+                        "dis_max": {
+                            "queries": [
+                                {
+                                    "term": {
+                                        "ean": {
+                                            "value": "{{query_string}}",
+                                            "boost": 1000
+                                        }
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "combined": {
+                                            "query": "{{query_string}}",
+                                            "operator": "and",
+                                            "boost": 50
+                                        }
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "titles.ngram": {
+                                            "query": "{{query_string}}",
+                                            "minimum_should_match": "60%",
+                                            "auto_generate_synonyms_phrase_query": False,
+                                            "boost": 30
+                                        }
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "authors.ngram": {
+                                            "query": "{{query_string}}",
+                                            "minimum_should_match": "60%",
+                                            "auto_generate_synonyms_phrase_query": False,
+                                            "boost": 20
+                                        }
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "translators": {
+                                            "query": "{{query_string}}",
+                                            "operator": "and",
+                                            "boost": 3
+                                        }
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "translators.ngram": {
+                                            "query": "{{query_string}}",
+                                            "minimum_should_match": "60%",
+                                            "auto_generate_synonyms_phrase_query": False,
+                                            "boost": 2
+                                        }
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "combined.edge": {
+                                            "query": "{{query_string}}",
+                                            "operator": "and",
+                                            "boost": 200
+                                        }
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "combined.ngram": {
+                                            "query": "{{query_string}}",
+                                            "minimum_should_match": "40%",
+                                            "auto_generate_synonyms_phrase_query": False,
+                                            "boost": 8
+                                        }
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "combined": {
+                                            "query": "{{query_string}}",
+                                            "fuzziness": "AUTO",
+                                            "operator": "and",
+                                            "boost": 100
+                                        }
+                                    }
+                                },
+                                {
+                                    "multi_match": {
+                                        "query": "{{query_string}}",
+                                        "fields": ["titles^3", "authors^2", "translators^0.3"],
+                                        "fuzziness": "AUTO",
+                                        "type": "best_fields",
+                                        "operator": "and",
+                                        "boost": 100
+                                    }
                                 }
-                            }
-                        },
+                            ],
+                            "tie_breaker": 0.2
+                        }
+                    },
+                    "functions": [
                         {
-                            "match": {
-                                "combined": {
-                                    "query": "{{query_string}}",
-                                    "operator": "and",
-                                    "boost": 50
+                            "linear": {
+                                "published_year": {
+                                    "origin": 2025,
+                                    "scale": 20,
+                                    "offset": 2,
+                                    "decay": 0.7
                                 }
-                            }
-                        },
-                        {
-                            "match": {
-                                "titles.ngram": {
-                                    "query": "{{query_string}}",
-                                    "minimum_should_match": "60%",
-                                    "auto_generate_synonyms_phrase_query": False,
-                                    "boost": 30
-                                }
-                            }
-                        },
-                        {
-                            "match": {
-                                "authors.ngram": {
-                                    "query": "{{query_string}}",
-                                    "minimum_should_match": "60%",
-                                    "auto_generate_synonyms_phrase_query": False,
-                                    "boost": 20
-                                }
-                            }
-                        },
-                        {
-                            "match": {
-                                "combined.edge": {
-                                    "query": "{{query_string}}",
-                                    "operator": "and",
-                                    "boost": 15
-                                }
-                            }
-                        },
-                        {
-                            "match": {
-                                "combined.ngram": {
-                                    "query": "{{query_string}}",
-                                    "minimum_should_match": "40%",
-                                    "auto_generate_synonyms_phrase_query": False,
-                                    "boost": 8
-                                }
-                            }
-                        },
-                        {
-                            "match": {
-                                "combined": {
-                                    "query": "{{query_string}}",
-                                    "fuzziness": "AUTO",
-                                    "operator": "and",
-                                    "boost": 100
-                                }
-                            }
-                        },
-                        {
-                            "multi_match": {
-                                "query": "{{query_string}}",
-                                "fields": ["titles^3", "authors^2"],
-                                "fuzziness": "AUTO",
-                                "type": "best_fields",
-                                "operator": "and",
-                                "boost": 100
-                            }
+                            },
+                            "weight": 1.2
                         }
                     ],
-                    "tie_breaker": 0.2
+                    "score_mode": "multiply",
+                    "boost_mode": "multiply"
                 }
             },
             "size": "{{size}}{{^size}}10{{/size}}"

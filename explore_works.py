@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Explore work structure in Kafka data."""
+
+from confluent_kafka import Consumer
+from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka.schema_registry.avro import AvroDeserializer
+from confluent_kafka.serialization import SerializationContext, MessageField
+import json
+
+# Confluent Cloud configuration
+BOOTSTRAP_SERVERS = "pkc-e8mp5.eu-west-1.aws.confluent.cloud:9092"
+KAFKA_API_KEY = "OH6I56HRLOGEX37Z"
+KAFKA_API_SECRET = "F6eH+m58Vrtj+xIOI2cMr9aLeO00MO2oDmEgn1CrqiV9P+REDEQdpi61629pTPUo"
+
+SCHEMA_REGISTRY_URL = "https://psrc-xm8wx.eu-central-1.aws.confluent.cloud"
+SCHEMA_REGISTRY_API_KEY = "LLG6JI5QZMBL7UTX"
+SCHEMA_REGISTRY_API_SECRET = "unzWb5L9uZ3sbF9bK+5rYgQHTNMDzOg4EqZlD5m93gPiCvb+AEuA2LWfXdFp1czt"
+
+TOPIC = "no.bokbasen.export.combined.product.v3"
+CONSUMER_GROUP = "metaq-backend-petter-explore"
+
+
+def create_consumer():
+    conf = {
+        "bootstrap.servers": BOOTSTRAP_SERVERS,
+        "security.protocol": "SASL_SSL",
+        "sasl.mechanisms": "PLAIN",
+        "sasl.username": KAFKA_API_KEY,
+        "sasl.password": KAFKA_API_SECRET,
+        "group.id": CONSUMER_GROUP,
+        "auto.offset.reset": "earliest",
+    }
+    return Consumer(conf)
+
+
+def create_schema_registry_client():
+    conf = {
+        "url": SCHEMA_REGISTRY_URL,
+        "basic.auth.user.info": f"{SCHEMA_REGISTRY_API_KEY}:{SCHEMA_REGISTRY_API_SECRET}",
+    }
+    return SchemaRegistryClient(conf)
+
+
+def on_assign(consumer, partitions):
+    for partition in partitions:
+        partition.offset = 0
+    consumer.assign(partitions)
+
+
+def explore_structure(obj, path="", max_depth=4, depth=0):
+    """Recursively explore dictionary structure."""
+    if depth > max_depth:
+        return
+
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            current_path = f"{path}.{key}" if path else key
+            if isinstance(value, dict):
+                print(f"{current_path}: {{dict}}")
+                explore_structure(value, current_path, max_depth, depth + 1)
+            elif isinstance(value, list):
+                print(f"{current_path}: [list, len={len(value)}]")
+                if value and depth < max_depth:
+                    explore_structure(value[0], f"{current_path}[0]", max_depth, depth + 1)
+            else:
+                val_str = str(value)[:50] if value else "None"
+                print(f"{current_path}: {type(value).__name__} = {val_str}")
+
+
+def main():
+    consumer = create_consumer()
+    schema_registry_client = create_schema_registry_client()
+    avro_deserializer = AvroDeserializer(schema_registry_client)
+
+    consumer.subscribe([TOPIC], on_assign=on_assign)
+
+    count = 0
+    samples = []
+
+    try:
+        while count < 10:
+            msg = consumer.poll(timeout=1.0)
+            if msg is None:
+                continue
+            if msg.error():
+                continue
+
+            value = avro_deserializer(
+                msg.value(),
+                SerializationContext(msg.topic(), MessageField.VALUE)
+            )
+
+            if not isinstance(value, dict):
+                continue
+
+            manifestation = value.get("manifestation", {})
+            expression = manifestation.get("expression", {})
+            work = manifestation.get("work", {}) if "work" in manifestation else expression.get("work", {})
+
+            # Look for work identifiers
+            sample = {
+                "ean": manifestation.get("ean"),
+                "title": (manifestation.get("titles", {}).get("mainTitles", [{}]) or [{}])[0].get("value"),
+                "work_id": work.get("id"),
+                "work_bokpiId": work.get("bokpiId"),
+                "expression_id": expression.get("id"),
+                "expression_bokpiId": expression.get("bokpiId"),
+                "manifestation_id": manifestation.get("id"),
+                "manifestation_bokpiId": manifestation.get("bokpiId"),
+                "productForm": manifestation.get("productForm"),
+                "productFormDetail": manifestation.get("productFormDetail"),
+            }
+
+            samples.append(sample)
+            count += 1
+
+            if count == 1:
+                print("=" * 80)
+                print("FULL STRUCTURE (first message):")
+                print("=" * 80)
+                explore_structure(value)
+                print()
+
+    except KeyboardInterrupt:
+        pass
+    finally:
+        consumer.close()
+
+    print("=" * 80)
+    print("SAMPLE DATA (10 records):")
+    print("=" * 80)
+    for s in samples:
+        print(json.dumps(s, ensure_ascii=False, indent=2))
+        print("-" * 40)
+
+
+if __name__ == "__main__":
+    main()

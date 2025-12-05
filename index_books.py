@@ -26,7 +26,9 @@ def generate_docs(filepath: str):
                 "_source": {
                     "ean": doc["ean"],
                     "titles": doc.get("titles", []),
-                    "authors": doc.get("authors", [])
+                    "authors": doc.get("authors", []),
+                    "translators": doc.get("translators", []),
+                    "published_year": doc.get("published_year")
                 }
             }
 

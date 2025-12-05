@@ -129,7 +129,7 @@ The search uses a stored template (`book_search`) with a `dis_max` query that ru
 | 2 | Exact match | `combined` | 50 | All terms (AND) | Exact word matches |
 | 3 | Title n-gram | `titles.ngram` | 30 | 60% of terms | Fuzzy title matching |
 | 4 | Author n-gram | `authors.ngram` | 20 | 60% of terms | Fuzzy author matching |
-| 5 | Edge n-gram | `combined.edge` | 15 | All terms (AND) | Prefix/autocomplete |
+| 5 | Edge n-gram | `combined.edge` | 200 | All terms (AND) | Prefix/autocomplete |
 | 6 | Combined n-gram | `combined.ngram` | 8 | 40% of terms | Broad fuzzy fallback |
 | 7 | Fuzzy exact | `combined` | 100 | All terms + fuzziness | Typo-tolerant exact match |
 | 8 | Multi-field fuzzy | `titles^3`, `authors^2` | 100 | All terms + fuzziness | Cross-field typo tolerance |
@@ -252,6 +252,7 @@ python search_books.py "houllebecq serotonin"
 | `minimum_should_match` | combined.ngram | 40% | Broader match threshold |
 | `tie_breaker` | dis_max | 0.2 | Multi-strategy score bonus |
 | `boost` | ean exact | 1000 | Weight for EAN/ISBN matches (highest) |
+| `boost` | edge n-gram | 200 | Weight for prefix matches (requires all terms) |
 | `boost` | fuzzy queries | 100 | Weight for fuzzy matches |
 | `boost` | exact match | 50 | Weight for exact matches |
 | `boost` | titles in multi_match | 3x | Favor title over author |

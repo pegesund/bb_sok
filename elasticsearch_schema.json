@@ -119,6 +119,17 @@
             }
           }
         },
+        "translators": {
+          "type": "text",
+          "analyzer": "standard_normalized",
+          "fields": {
+            "ngram": {
+              "type": "text",
+              "analyzer": "ngram_analyzer",
+              "search_analyzer": "ngram_analyzer"
+            }
+          }
+        },
         "combined": {
           "type": "text",
           "analyzer": "standard_normalized",
@@ -185,10 +196,29 @@
               },
               {
                 "match": {
+                  "translators": {
+                    "query": "{{query_string}}",
+                    "operator": "and",
+                    "boost": 3
+                  }
+                }
+              },
+              {
+                "match": {
+                  "translators.ngram": {
+                    "query": "{{query_string}}",
+                    "minimum_should_match": "60%",
+                    "auto_generate_synonyms_phrase_query": false,
+                    "boost": 2
+                  }
+                }
+              },
+              {
+                "match": {
                   "combined.edge": {
                     "query": "{{query_string}}",
                     "operator": "and",
-                    "boost": 15
+                    "boost": 200
                   }
                 }
               },
@@ -215,7 +245,7 @@
               {
                 "multi_match": {
                   "query": "{{query_string}}",
-                  "fields": ["titles^3", "authors^2"],
+                  "fields": ["titles^3", "authors^2", "translators^0.3"],
                   "fuzziness": "AUTO",
                   "type": "best_fields",
                   "operator": "and",

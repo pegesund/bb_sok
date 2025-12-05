@@ -137,6 +137,17 @@ INDEX_SETTINGS = {
                     }
                 }
             },
+            "translators": {
+                "type": "text",
+                "analyzer": "standard_normalized",
+                "fields": {
+                    "ngram": {
+                        "type": "text",
+                        "analyzer": "ngram_analyzer",
+                        "search_analyzer": "ngram_analyzer"
+                    }
+                }
+            },
             "combined": {
                 "type": "text",
                 "analyzer": "standard_normalized",
@@ -152,7 +163,8 @@ INDEX_SETTINGS = {
                         "search_analyzer": "search_analyzer"
                     }
                 }
-            }
+            },
+            "published_year": {"type": "integer"}
         }
     }
 }

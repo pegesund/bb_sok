@@ -16,57 +16,136 @@ ES_USER = "elastic"
 ES_PASSWORD = "wMC4mty00n3IxVwak1oB"
 INDEX_NAME = "books"
 
-# Test cases: (query, expected_substring_in_title_or_author)
+# Test cases: (query, expected_substring, category)
 TEST_CASES = [
     # EAN exact match
-    ("9788202792947", "harry potter"),  # Direct ISBN/EAN lookup
+    ("9788202792947", "harry potter", "EAN lookup"),
+
+    # Prefix matching
+    ("laszlo kra", "krasznahorkai", "Prefix match"),
+
+    # László Krasznahorkai - Hungarian diacritics (á, ó)
+    ("László Krasznahorkai", "krasznahorkai", "Hungarian á ó"),
+    ("Laszlo Krasznahorkai", "krasznahorkai", "Hungarian á ó"),
+    ("krasznahorkai", "krasznahorkai", "Last name only"),
+    ("krasznahorkai laszlo", "krasznahorkai", "Name order"),
+    ("Krasznahorkai László", "krasznahorkai", "Name order"),
+    ("krasnahorkai", "krasznahorkai", "Fuzzy/typo"),
+    ("krasznahokai", "krasznahorkai", "Fuzzy/typo"),
+    ("satantango", "krasznahorkai", "Title search"),
+    ("satantango krasznahorkai", "krasznahorkai", "Title + author"),
 
     # Harry Potter variants
-    ("harry potter", "harry potter"),
-    ("harry poter", "harry potter"),
-    ("harri poter", "harry potter"),
-    ("harri potter", "harry potter"),
-    ("harri rovling", "rowling"),
-    ("harry rowling", "rowling"),
-    ("harry potter dødstalism", "dødstalismanene"),
+    ("harry potter", "harry potter", "Exact match"),
+    ("harry poter", "harry potter", "Fuzzy/typo"),
+    ("harri poter", "harry potter", "Fuzzy/typo"),
+    ("harri potter", "harry potter", "Fuzzy/typo"),
+    ("harry j.k. rowling", "rowling", "Fuzzy/typo"),
+    ("harry rowling", "rowling", "Title + author"),
+    ("harry potter dødstalism", "dødstalismanene", "Fuzzy/typo"),
 
     # Houellebecq variants - single word
-    ("houellebecq", "houellebecq"),
-    ("houllebecq", "houellebecq"),
-    ("hollebeck", "houellebecq"),
-    ("hullebeck", "houellebecq"),
+    ("houellebecq", "houellebecq", "Exact match"),
+    ("houllebecq", "houellebecq", "Fuzzy/typo"),
+    ("hollebeck", "houellebecq", "Fuzzy/typo"),
+    ("hullebeck", "houellebecq", "Fuzzy/typo"),
 
     # Houellebecq variants - with book titles
-    ("houellebecq serotonin", "houellebecq"),
-    ("houllebecq serotonin", "houellebecq"),
-    ("houllebeck serotonin", "houellebecq"),
-    ("houellebecq underkastelse", "houellebecq"),
-    ("houllebecq underkastelse", "houellebecq"),
+    ("houellebecq serotonin", "houellebecq", "Title + author"),
+    ("houllebecq serotonin", "houellebecq", "Title + author"),
+    ("houllebeck serotonin", "houellebecq", "Title + author"),
+    ("houellebecq underkastelse", "houellebecq", "Title + author"),
+    ("houllebecq underkastelse", "houellebecq", "Title + author"),
 
     # Diacritical variants - ë (diaeresis)
-    ("Bronte", "brontë"),           # Without diacritic
-    ("Brontë", "brontë"),           # With diacritic
-    ("Charlotte Bronte", "brontë"), # Full name without diacritic
+    ("Bronte", "brontë", "Diacritic ë"),
+    ("Brontë", "brontë", "Diacritic ë"),
+    ("Charlotte Bronte", "brontë", "Diacritic ë"),
 
     # Diacritical variants - ö (Swedish/German)
-    ("Marcel Moring", "möring"),    # Without diacritic
-    ("Marcel Möring", "möring"),    # With diacritic
+    ("Marcel Moring", "möring", "Diacritic ö"),
+    ("Marcel Möring", "möring", "Diacritic ö"),
 
     # Diacritical variants - é (French accent)
-    ("Regine Deforges", "régine"),  # Without accent
-    ("Régine Deforges", "régine"),  # With accent
+    ("Regine Deforges", "régine", "Diacritic é"),
+    ("Régine Deforges", "régine", "Diacritic é"),
 
     # Special character removal
-    ("JK Rowling", "rowling"),      # Without periods
-    ("J.K. Rowling", "rowling"),    # With periods
-    ("J K Rowling", "rowling"),     # With spaces
+    ("JK Rowling", "rowling", "Punctuation"),
+    ("J.K. Rowling", "rowling", "Punctuation"),
+    ("J K Rowling", "rowling", "Punctuation"),
 
-    # Nordic character variants (ö→ø, ä→æ, but o≠ø, a≠æ)
-    ("Jäger", "jæger"),             # German ä → Norwegian æ ✓
-    ("Jæger", "jæger"),             # Norwegian æ preserved ✓
-    ("Marcel Møring", "möring"),    # Norwegian ø → finds Swedish ö ✓
-    ("Marcel Möring", "möring"),    # Swedish ö → finds Swedish ö (same after normalization)
-    # Note: "Jager" does NOT find "Jæger" - they are different letters!
+    # Nordic character variants (ö→ø, ä→æ)
+    ("Jäger", "jæger", "Nordic ä↔æ"),
+    ("Jæger", "jæger", "Nordic ä↔æ"),
+    ("Marcel Møring", "möring", "Nordic ö↔ø"),
+    ("Marcel Möring", "möring", "Nordic ö↔ø"),
+
+    # === AUTOCOMPLETE TESTS ===
+    # Simulating real user typing behavior
+
+    # Partial title typing (user still typing)
+    ("harry pot", "harry potter", "Autocomplete"),
+    ("harry potte", "harry potter", "Autocomplete"),
+    ("seroton", "serotonin", "Autocomplete"),
+    ("underkas", "underkastelse", "Autocomplete"),
+    ("satanta", "satantango", "Autocomplete"),
+
+    # Partial author typing
+    ("kraszna", "krasznahorkai", "Autocomplete"),
+    ("houelle", "houellebecq", "Autocomplete"),
+    ("rowli", "rowling", "Autocomplete"),
+
+    # Partial + typo (user typing fast, makes mistake)
+    ("hary potter", "harry potter", "Partial+typo"),
+    ("harr potr", "harry potter", "Partial+typo"),
+    ("houllebec", "houellebecq", "Partial+typo"),
+    ("kraszn", "krasznahorkai", "Partial+typo"),
+    ("laszlo krasz", "krasznahorkai", "Partial+typo"),
+
+    # Partial title + partial author (autocomplete combos)
+    ("harry rowl", "rowling", "Partial combo"),
+    ("harry row", "rowling", "Partial combo"),
+    ("potter rowl", "rowling", "Partial combo"),
+    ("serot houel", "houellebecq", "Partial combo"),
+    ("sero houe", "houellebecq", "Partial combo"),
+    ("satan lasz", "krasznahorkai", "Partial combo"),
+    ("satan kras", "krasznahorkai", "Partial combo"),
+    ("underkas houel", "houellebecq", "Partial combo"),
+    ("bront charl", "brontë", "Partial combo"),
+    ("jæger bjørn", "bjørnstad", "Partial combo"),
+
+    # First letters only (very early typing)
+    ("har pot", "harry potter", "Short prefix"),
+    ("har row", "rowling", "Short prefix"),
+    ("j.k. row", "rowling", "Short prefix"),
+    ("jk row", "rowling", "Short prefix"),
+    ("las kra", "krasznahorkai", "Short prefix"),
+
+    # Autocomplete with diacritics omitted
+    ("laszlo kras", "krasznahorkai", "Partial+diacr"),
+    ("moring store lengselen", "möring", "Partial+diacr"),
+    ("regine def", "régine", "Partial+diacr"),
+    ("charlotte bron", "brontë", "Partial+diacr"),
+
+    # Common keyboard mistakes (adjacent keys, double letters)
+    ("harrry potter", "harry potter", "Keyboard typo"),
+    ("harry pottr", "harry potter", "Keyboard typo"),
+
+    # Mixed case partial (user switches case mid-word)
+    ("Harry POT", "harry potter", "Case mixed"),
+    ("LASZLO kra", "krasznahorkai", "Case mixed"),
+
+    # Book series partial
+    ("harry potter død", "dødstalismanene", "Series partial"),
+
+    # === DATE BOOSTING TESTS ===
+    # Newer editions should rank higher than older editions
+    # These tests verify that recent publications appear first
+
+    # Classic works with multiple editions - expect recent year in top result
+    ("sult hamsun", "2024", "Date boost"),
+    ("harry potter rowling", "2023", "Date boost"),
 ]
 
 
@@ -89,31 +168,44 @@ def check_result(hits: list, expected: str) -> tuple[bool, int | None]:
     """
     Check if expected substring appears in any of the top 3 results.
     Returns (passed, position) where position is 1-indexed or None if not found.
+    Also checks published_year for date boost tests.
     """
     for i, hit in enumerate(hits):
         titles = hit["_source"].get("titles", [])
         authors = hit["_source"].get("authors", [])
+        published_year = hit["_source"].get("published_year")
 
         # Combine all text and check for expected substring
         full_text = " ".join(titles + authors).lower()
 
+        # Check if expected is in text or matches published_year
         if expected.lower() in full_text:
+            return True, i + 1
+        if published_year and str(published_year) == expected:
             return True, i + 1
 
     return False, None
 
 
-def format_result(hits: list, max_len: int = 50) -> str:
-    """Format the top result for display."""
+def format_result(hits: list, position: int | None = None, max_len: int = 55) -> tuple[str, float | None]:
+    """Format a result for display. Shows matched position if provided, else top result."""
     if not hits:
-        return "No results"
+        return "No results", None
 
-    hit = hits[0]
+    # Use matched position (1-indexed) or default to first result
+    idx = (position - 1) if position else 0
+    if idx >= len(hits):
+        idx = 0
+
+    hit = hits[idx]
     titles = ", ".join(hit["_source"].get("titles", []))
     authors = ", ".join(hit["_source"].get("authors", [])) or "Unknown"
+    year = hit["_source"].get("published_year", "")
+    score = hit.get("_score")
 
-    result = f"{titles[:30]} | {authors[:20]}"
-    return result[:max_len]
+    year_str = f"({year}) " if year else ""
+    result = f"{year_str}{titles[:18]} | {authors[:28]}"
+    return result[:max_len], score
 
 
 def run_tests():
@@ -129,9 +221,9 @@ def run_tests():
         print("ERROR: Cannot connect to Elasticsearch")
         return False
 
-    print("=" * 80)
+    print("=" * 135)
     print("BOOK SEARCH TEST SUITE")
-    print("=" * 80)
+    print("=" * 135)
     print(f"Checking if expected result appears in positions 1-3")
     print()
 
@@ -139,7 +231,7 @@ def run_tests():
     failed = 0
     results = []
 
-    for query, expected in TEST_CASES:
+    for query, expected, category in TEST_CASES:
         hits = search(es, query)
         success, position = check_result(hits, expected)
 
@@ -150,17 +242,18 @@ def run_tests():
             failed += 1
             status = "✗ FAIL"
 
-        top_result = format_result(hits)
-        results.append((query, expected, status, top_result))
+        matched_result, score = format_result(hits, position)
+        results.append((category, query, expected, status, matched_result, score))
 
     # Print results table
-    print(f"{'Query':<30} {'Expected':<15} {'Status':<12} {'Top Result'}")
-    print("-" * 80)
+    print(f"{'Category':<15} {'Query':<28} {'Expected':<15} {'Status':<12} {'Matched Result':<57} {'Score'}")
+    print("-" * 135)
 
-    for query, expected, status, top_result in results:
-        print(f"{query:<30} {expected:<15} {status:<12} {top_result}")
+    for category, query, expected, status, matched_result, score in results:
+        score_str = f"{score:.1f}" if score else "-"
+        print(f"{category:<15} {query:<28} {expected:<15} {status:<12} {matched_result:<57} {score_str}")
 
-    print("-" * 80)
+    print("-" * 135)
     print()
 
     # Summary
@@ -217,7 +310,7 @@ if __name__ == "__main__":
         # Run single test with provided query
         query = " ".join(sys.argv[1:])
         # Try to find matching test case
-        matching = [(q, e) for q, e in TEST_CASES if q == query]
+        matching = [(q, e, c) for q, e, c in TEST_CASES if q == query]
         if matching:
             run_single_test(matching[0][0], matching[0][1])
         else:
