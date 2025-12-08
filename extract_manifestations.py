@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Extract all manifestations from Kafka with work/expression info."""
 
+import os
+from dotenv import load_dotenv
 from confluent_kafka import Consumer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
@@ -9,14 +11,16 @@ import json
 import signal
 import sys
 
-# Confluent Cloud configuration
-BOOTSTRAP_SERVERS = "pkc-e8mp5.eu-west-1.aws.confluent.cloud:9092"
-KAFKA_API_KEY = "OH6I56HRLOGEX37Z"
-KAFKA_API_SECRET = "F6eH+m58Vrtj+xIOI2cMr9aLeO00MO2oDmEgn1CrqiV9P+REDEQdpi61629pTPUo"
+load_dotenv()
 
-SCHEMA_REGISTRY_URL = "https://psrc-xm8wx.eu-central-1.aws.confluent.cloud"
-SCHEMA_REGISTRY_API_KEY = "LLG6JI5QZMBL7UTX"
-SCHEMA_REGISTRY_API_SECRET = "unzWb5L9uZ3sbF9bK+5rYgQHTNMDzOg4EqZlD5m93gPiCvb+AEuA2LWfXdFp1czt"
+# Confluent Cloud configuration
+BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
+KAFKA_API_KEY = os.getenv("KAFKA_API_KEY")
+KAFKA_API_SECRET = os.getenv("KAFKA_API_SECRET")
+
+SCHEMA_REGISTRY_URL = os.getenv("SCHEMA_REGISTRY_URL")
+SCHEMA_REGISTRY_API_KEY = os.getenv("SCHEMA_REGISTRY_API_KEY")
+SCHEMA_REGISTRY_API_SECRET = os.getenv("SCHEMA_REGISTRY_API_SECRET")
 
 TOPIC = "no.bokbasen.export.combined.product.v3"
 CONSUMER_GROUP = "metaq-backend-petter-manifestations"

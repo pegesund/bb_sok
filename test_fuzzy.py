@@ -1,13 +1,17 @@
+import os
 import urllib3
 import warnings
+from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
+
+load_dotenv()
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 warnings.filterwarnings("ignore", message="Connecting to .* using TLS with verify_certs=False is insecure")
 
-ES_HOST = "https://localhost:9200"
-ES_USER = "elastic"
-ES_PASSWORD = "wMC4mty00n3IxVwak1oB"
+ES_HOST = os.getenv("ES_HOST", "https://localhost:9200")
+ES_USER = os.getenv("ES_USER", "elastic")
+ES_PASSWORD = os.getenv("ES_PASSWORD")
 INDEX_NAME = "books"
 
 

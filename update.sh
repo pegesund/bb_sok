@@ -1,11 +1,15 @@
 #!/bin/bash
 
-ES_HOST="https://localhost:9200"
-ES_USER="elastic"
-ES_PASSWORD="wMC4mty00n3IxVwak1oB"
-INDEX_NAME="books"
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load environment variables from .env file
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    export $(grep -v '^#' "$SCRIPT_DIR/.env" | xargs)
+fi
+
+ES_HOST="${ES_HOST:-https://localhost:9200}"
+ES_USER="${ES_USER:-elastic}"
+INDEX_NAME="books"
 
 echo "=== Elasticsearch Index & Template Update ==="
 

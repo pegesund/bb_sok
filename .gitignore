@@ -23,6 +23,8 @@ pip-wheel-metadata/
 # Data and output files
 *.json
 !elasticsearch_schema.json
+!index_settings.json
+!search_template.json
 *.txt
 !requirements.txt
 !README.txt
