@@ -69,6 +69,23 @@ test_search_template = '''{
     ]
 }'''
 
+# Agent search template - for searching agents/authors
+agent_search_template = '''{
+    "query": {
+        "bool": {
+            "should": [
+                {"match": {"names.keyword": {"query": "{{query_string}}", "operator": "and", "boost": 10}}},
+                {"match": {"names.suggest": {"query": "{{query_string}}", "operator": "and"}}},
+                {"match": {"names": {"query": "{{query_string}}", "operator": "and", "fuzziness": "AUTO"}}},
+                {"rank_feature": {"field": "portfolio_count", "boost": 3}}
+            ],
+            "minimum_should_match": 2
+        }
+    },
+    "from": "{{from}}{{^from}}0{{/from}}",
+    "size": "{{size}}{{^size}}10{{/size}}"
+}'''
+
 # EAN search template - exact match only, no fuzziness
 ean_search_template = '''{
     "query": {
@@ -111,3 +128,4 @@ def upload_template(name, source):
 if __name__ == "__main__":
     upload_template("test_search", test_search_template)
     upload_template("ean_search", ean_search_template)
+    upload_template("agent_search", agent_search_template)
