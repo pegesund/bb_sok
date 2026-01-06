@@ -9,7 +9,7 @@ headers = {
 }
 
 # Main search template with sorting support
-work_search_template = '''{
+test_search_template = '''{
     "query": {
         "function_score": {
             "query": {
@@ -153,6 +153,6 @@ def upload_template(name, source):
         print(f"Error uploading '{name}': {response.status_code} - {response.text}")
 
 if __name__ == "__main__":
-    upload_template("work_search", work_search_template)
+    upload_template("test_search", test_search_template)
     upload_template("ean_search", ean_search_template)
     upload_template("agent_search", agent_search_template)

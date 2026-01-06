@@ -9,7 +9,7 @@ headers = {
 }
 
 # Main search template with sorting support
-work_search_template = '''{
+test_search_template = '''{
     "query": {
         "function_score": {
             "query": {
@@ -69,44 +69,16 @@ work_search_template = '''{
     ]
 }'''
 
-# Agent search template - for searching agents/authors (uses ngram like work index)
+# Agent search template - for searching agents/authors
 agent_search_template = '''{
     "query": {
-        "function_score": {
-            "query": {
-                "bool": {
-                    "must": {
-                        "dis_max": {
-                            "queries": [
-                                {"match": {"names.keyword": {"query": "{{query_string}}", "operator": "and", "boost": 1000}}},
-                                {"prefix": {"names.keyword": {"value": "{{query_string}}", "boost": 300}}},
-                                {"match_phrase_prefix": {"names": {"query": "{{query_string}}", "boost": 400}}},
-                                {"match": {"names": {"query": "{{query_string}}", "operator": "and", "boost": 500}}},
-                                {"match": {"names.edge": {"query": "{{query_string}}", "operator": "and", "boost": 200}}},
-                                {"match": {"names": {"query": "{{query_string}}", "fuzziness": "AUTO", "operator": "and", "boost": 100}}},
-                                {"match": {"names.ngram": {"query": "{{query_string}}", "minimum_should_match": "30%", "boost": 10}}}
-                            ],
-                            "tie_breaker": 0.2
-                        }
-                    },
-                    "should": [
-                        {"rank_feature": {"field": "portfolio_count", "log": {"scaling_factor": 1}, "boost": 400}}
-                    ]
-                }
-            },
-            "functions": [
-                {
-                    "script_score": {
-                        "script": {
-                            "source": "def query = params.query.toLowerCase(); def firstChar = query.substring(0, 1); for (name in doc['names.keyword']) { def parts = name.toLowerCase().splitOnToken(' '); for (part in parts) { if (part.length() > 0 && part.substring(0, 1) == firstChar) { return 2.0; } } } return 1.0;",
-                            "params": {"query": "{{query_string}}"}
-                        }
-                    },
-                    "weight": 1.5
-                }
+        "bool": {
+            "should": [
+                {"match": {"names.keyword": {"query": "{{query_string}}", "operator": "and", "boost": 10}}},
+                {"match": {"names.suggest": {"query": "{{query_string}}", "operator": "and", "boost": 5}}},
+                {"match": {"names": {"query": "{{query_string}}", "operator": "and", "fuzziness": "AUTO", "boost": 3}}}
             ],
-            "score_mode": "multiply",
-            "boost_mode": "multiply"
+            "minimum_should_match": 1
         }
     },
     "from": "{{from}}{{^from}}0{{/from}}",
@@ -153,6 +125,6 @@ def upload_template(name, source):
         print(f"Error uploading '{name}': {response.status_code} - {response.text}")
 
 if __name__ == "__main__":
-    upload_template("work_search", work_search_template)
+    upload_template("test_search", test_search_template)
     upload_template("ean_search", ean_search_template)
     upload_template("agent_search", agent_search_template)
